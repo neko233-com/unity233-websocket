@@ -47,6 +47,22 @@ Ultra-low-latency WebSocket client for Unity, optimized for **WebGL** with a **n
 
 这个 WebGL 压测说明：在同一条浏览器 WebSocket 管道接近极限时，吞吐是同级别；本库真正拉开差距的是 GC 次数。官方 UnityWebSocket 的托管 GC delta 会随时间 / 消息量持续累积，`20s` 压测约 `69 / 69 / 69`，`60s` 压测约 `208 / 208 / 208`；本库稳定在 `1 / 1 / 1`。
 
+### GC 趋势暴露测试
+
+同场景 `60s / 256B / 1000Hz`，每 10 秒采样一次 `GC.CollectionCount` delta：
+
+| Elapsed | `unity233-websocket` GC delta | `psygames/UnityWebSocket` GC delta |
+|---------|-------------------------------|-------------------------------------|
+| `0s` | `0 / 0 / 0` | `0 / 0 / 0` |
+| `10s` | `1 / 1 / 1` | `35 / 35 / 35` |
+| `20s` | `1 / 1 / 1` | `70 / 70 / 70` |
+| `30s` | `1 / 1 / 1` | `105 / 105 / 105` |
+| `40s` | `1 / 1 / 1` | `139 / 139 / 139` |
+| `50s` | `1 / 1 / 1` | `174 / 174 / 174` |
+| `60s` | `1 / 1 / 1` | `208 / 208 / 208` |
+
+这说明官方 UnityWebSocket 在高频 WebGL Binary 场景中会持续触发托管 GC；本库的 WebGL ring + byte[] fast path 能把热路径 GC 压住。
+
 **在线文档：** https://neko233-com.github.io/unity233-websocket/
 
 **WebGL 为何必须 jslib？** → [docs/webgl-jslib-explained.md](docs/webgl-jslib-explained.md)
