@@ -10,7 +10,6 @@
 | [**UnityWebSocket 内存泄漏与 OOM 修复**](memory-leaks.md) | 微信小游戏 JS 涨内存根因与本库对策 |
 | [与 UnityWebSocket 对比](comparison.md) | 功能对照、设计取舍、适用场景 |
 | [优化原理详解](optimizations.md) | JSLIB / C# / 环形缓冲的具体改动 |
-| [UniTask 支持](unitask.md) | 可选 async API 与安装方式 |
 | [零 GC 使用指南](zero-gc-guide.md) | 业务侧如何写出稳定 0 GC 热路径 |
 | [从 UnityWebSocket 迁移](migration.md) | API 对照与迁移步骤 |
 
@@ -37,7 +36,7 @@ https://github.com/neko233-com/unity233-websocket.git
 - WebGL + **WeixinMiniGame** JSLIB（`.jslib.meta` 双平台）
 - **Anti-leak JSLIB**：handler detach、`ws == null` 安全关闭、移除 FileReader/Blob、复用 deliver/string scratch
 - 发送 `Uint8Array` view 零拷贝；接收 **`Ws233ReceiveRing`** 稳态无 `_malloc`
-- C# **`BufferPool` + `Release()`**；可选 **UniTask** 扩展
+- C# **`BufferPool` + `Release()`**；运行时 **0 第三方依赖**
 - Editor / Standalone `ClientWebSocket` 回退
 
 规划中：

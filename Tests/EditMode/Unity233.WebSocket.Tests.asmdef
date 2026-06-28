@@ -1,0 +1,21 @@
+{
+    "name": "Unity233.WebSocket.Tests",
+    "rootNamespace": "Unity233.WebSocket.Tests",
+    "references": [
+        "Unity233.WebSocket"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

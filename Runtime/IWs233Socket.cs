@@ -23,7 +23,10 @@ namespace Unity233.WebSocket
 
         void Close(Ws233CloseCode code = Ws233CloseCode.Normal, string reason = "Normal Closure");
 
-        /// <summary>Send binary payload without extra copies on WebGL (Uint8Array view over WASM heap).</summary>
+        /// <summary>Send binary payload without extra managed copies on WebGL when the payload is already a byte array.</summary>
+        void Send(byte[] payload);
+
+        /// <summary>Send binary payload from any contiguous span. WebGL copies once into reusable scratch when the span is not the byte[] fast path.</summary>
         void Send(ReadOnlySpan<byte> payload);
 
         void SendText(string text);

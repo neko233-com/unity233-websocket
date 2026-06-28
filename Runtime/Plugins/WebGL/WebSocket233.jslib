@@ -123,6 +123,66 @@ var WebSocket233Library =
             invokeMessage(instanceId, buffer, array.length);
         },
 
+        invokeOpen: function(instanceId)
+        {
+            if (ws233Manager.support6000)
+            {
+                {{{ makeDynCall('vi', 'ws233Manager.onOpen') }}}(instanceId);
+            }
+            else
+            {
+                Module.dynCall_vi(ws233Manager.onOpen, instanceId);
+            }
+        },
+
+        invokeMessageRing: function(instanceId, slot, length)
+        {
+            if (ws233Manager.support6000)
+            {
+                {{{ makeDynCall('viii', 'ws233Manager.onMessageRing') }}}(instanceId, slot, length);
+            }
+            else
+            {
+                Module.dynCall_viii(ws233Manager.onMessageRing, instanceId, slot, length);
+            }
+        },
+
+        invokeMessage: function(instanceId, ptr, length)
+        {
+            if (ws233Manager.support6000)
+            {
+                {{{ makeDynCall('viii', 'ws233Manager.onMessage') }}}(instanceId, ptr, length);
+            }
+            else
+            {
+                Module.dynCall_viii(ws233Manager.onMessage, instanceId, ptr, length);
+            }
+        },
+
+        invokeError: function(instanceId, ptr)
+        {
+            if (ws233Manager.support6000)
+            {
+                {{{ makeDynCall('vii', 'ws233Manager.onError') }}}(instanceId, ptr);
+            }
+            else
+            {
+                Module.dynCall_vii(ws233Manager.onError, instanceId, ptr);
+            }
+        },
+
+        invokeClose: function(instanceId, code, ptr)
+        {
+            if (ws233Manager.support6000)
+            {
+                {{{ makeDynCall('viii', 'ws233Manager.onClose') }}}(instanceId, code, ptr);
+            }
+            else
+            {
+                Module.dynCall_viii(ws233Manager.onClose, instanceId, code, ptr);
+            }
+        },
+
         destroyInstance: function(instance)
         {
             if (!instance)
@@ -242,14 +302,7 @@ var WebSocket233Library =
 
         instance.ws.onopen = function()
         {
-            if (ws233Manager.support6000)
-            {
-                {{{ makeDynCall('vi', 'ws233Manager.onOpen') }}}(instanceId);
-            }
-            else
-            {
-                Module.dynCall_vi(ws233Manager.onOpen, instanceId);
-            }
+            ws233Manager.invokeOpen(instanceId);
         };
 
         instance.ws.onmessage = function(ev)
@@ -261,33 +314,9 @@ var WebSocket233Library =
 
             var array = new Uint8Array(ev.data);
 
-            var invokeRing = function(id, slot, len)
+            if (!ws233Manager.tryDeliverRing(instanceId, array, ws233Manager.invokeMessageRing))
             {
-                if (ws233Manager.support6000)
-                {
-                    {{{ makeDynCall('viii', 'ws233Manager.onMessageRing') }}}(id, slot, len);
-                }
-                else
-                {
-                    Module.dynCall_viii(ws233Manager.onMessageRing, id, slot, len);
-                }
-            };
-
-            var invokeMessage = function(id, ptr, len)
-            {
-                if (ws233Manager.support6000)
-                {
-                    {{{ makeDynCall('viii', 'ws233Manager.onMessage') }}}(id, ptr, len);
-                }
-                else
-                {
-                    Module.dynCall_viii(ws233Manager.onMessage, id, ptr, len);
-                }
-            };
-
-            if (!ws233Manager.tryDeliverRing(instanceId, array, invokeRing))
-            {
-                ws233Manager.deliverPooled(instanceId, array, invokeMessage);
+                ws233Manager.deliverPooled(instanceId, array, ws233Manager.invokeMessage);
             }
         };
 
@@ -296,14 +325,7 @@ var WebSocket233Library =
             var length = lengthBytesUTF8("WebSocket error.") + 1;
             var buffer = ws233Manager.ensureStringScratch(length);
             stringToUTF8("WebSocket error.", buffer, length);
-            if (ws233Manager.support6000)
-            {
-                {{{ makeDynCall('vii', 'ws233Manager.onError') }}}(instanceId, buffer);
-            }
-            else
-            {
-                Module.dynCall_vii(ws233Manager.onError, instanceId, buffer);
-            }
+            ws233Manager.invokeError(instanceId, buffer);
         };
 
         instance.ws.onclose = function(ev)
@@ -312,14 +334,7 @@ var WebSocket233Library =
             var length = lengthBytesUTF8(reason) + 1;
             var buffer = ws233Manager.ensureStringScratch(length);
             stringToUTF8(reason, buffer, length);
-            if (ws233Manager.support6000)
-            {
-                {{{ makeDynCall('viii', 'ws233Manager.onClose') }}}(instanceId, ev.code, buffer);
-            }
-            else
-            {
-                Module.dynCall_viii(ws233Manager.onClose, instanceId, ev.code, buffer);
-            }
+            ws233Manager.invokeClose(instanceId, ev.code, buffer);
 
             ws233Manager.cleanupWebSocket(instance.ws);
             instance.ws = null;

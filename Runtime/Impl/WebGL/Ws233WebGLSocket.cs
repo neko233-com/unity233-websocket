@@ -92,6 +92,20 @@ namespace Unity233.WebSocket
             }
         }
 
+        public void Send(byte[] payload)
+        {
+            if (payload == null)
+            {
+                throw new ArgumentNullException(nameof(payload));
+            }
+
+            var code = Ws233WebGLBridge.WebSocket233Send(InstanceId, payload, payload.Length);
+            if (code < 0)
+            {
+                Errored?.Invoke(ErrorMessage(code));
+            }
+        }
+
         public void SendText(string text)
         {
             var code = Ws233WebGLBridge.WebSocket233SendStr(InstanceId, text);

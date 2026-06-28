@@ -1,6 +1,5 @@
 #if !UNITY_EDITOR && UNITY_WEBGL
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using AOT;
 
@@ -8,7 +7,7 @@ namespace Unity233.WebSocket
 {
     internal static class Ws233WebGLBridge
     {
-        static readonly Dictionary<int, Ws233WebGLSocket> Sockets = new();
+        static Ws233WebGLSocket[] _sockets = new Ws233WebGLSocket[8];
         static bool _initialized;
 
         public delegate void OnOpenCallback(int instanceId);
@@ -75,21 +74,49 @@ namespace Unity233.WebSocket
 
         public static void Track(Ws233WebGLSocket socket)
         {
-            if (!Sockets.ContainsKey(socket.InstanceId))
+            var instanceId = socket.InstanceId;
+            if (instanceId < 0)
             {
-                Sockets.Add(socket.InstanceId, socket);
+                return;
             }
+
+            if (instanceId >= _sockets.Length)
+            {
+                Array.Resize(ref _sockets, NextCapacity(instanceId + 1));
+            }
+
+            _sockets[instanceId] = socket;
         }
 
         public static void Untrack(int instanceId)
         {
-            Sockets.Remove(instanceId);
+            if ((uint)instanceId < (uint)_sockets.Length)
+            {
+                _sockets[instanceId] = null;
+            }
+        }
+
+        static Ws233WebGLSocket GetSocket(int instanceId)
+        {
+            return (uint)instanceId < (uint)_sockets.Length ? _sockets[instanceId] : null;
+        }
+
+        static int NextCapacity(int min)
+        {
+            var capacity = _sockets.Length;
+            while (capacity < min)
+            {
+                capacity *= 2;
+            }
+
+            return capacity;
         }
 
         [MonoPInvokeCallback(typeof(OnOpenCallback))]
         static void DelegateOnOpen(int instanceId)
         {
-            if (Sockets.TryGetValue(instanceId, out var socket))
+            var socket = GetSocket(instanceId);
+            if (socket != null)
             {
                 socket.HandleOpen();
             }
@@ -98,7 +125,8 @@ namespace Unity233.WebSocket
         [MonoPInvokeCallback(typeof(OnMessageRingCallback))]
         static void DelegateOnMessageRing(int instanceId, int slotIndex, int msgSize)
         {
-            if (Sockets.TryGetValue(instanceId, out var socket))
+            var socket = GetSocket(instanceId);
+            if (socket != null)
             {
                 socket.HandleBinaryFromRing(slotIndex, msgSize);
             }
@@ -107,7 +135,8 @@ namespace Unity233.WebSocket
         [MonoPInvokeCallback(typeof(OnMessageCallback))]
         static void DelegateOnMessagePooled(int instanceId, IntPtr msgPtr, int msgSize)
         {
-            if (!Sockets.TryGetValue(instanceId, out var socket))
+            var socket = GetSocket(instanceId);
+            if (socket == null)
             {
                 return;
             }
@@ -120,7 +149,8 @@ namespace Unity233.WebSocket
         [MonoPInvokeCallback(typeof(OnErrorCallback))]
         static void DelegateOnError(int instanceId, IntPtr errorPtr)
         {
-            if (Sockets.TryGetValue(instanceId, out var socket))
+            var socket = GetSocket(instanceId);
+            if (socket != null)
             {
                 socket.HandleError(Marshal.PtrToStringAuto(errorPtr));
             }
@@ -129,7 +159,8 @@ namespace Unity233.WebSocket
         [MonoPInvokeCallback(typeof(OnCloseCallback))]
         static void DelegateOnClose(int instanceId, int closeCode, IntPtr reasonPtr)
         {
-            if (Sockets.TryGetValue(instanceId, out var socket))
+            var socket = GetSocket(instanceId);
+            if (socket != null)
             {
                 socket.HandleClose((ushort)closeCode, Marshal.PtrToStringAuto(reasonPtr));
             }

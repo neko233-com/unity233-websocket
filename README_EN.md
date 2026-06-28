@@ -28,7 +28,6 @@ A performance-focused alternative to [UnityWebSocket](https://github.com/psygame
 - [WebGL jslib explained](docs/webgl-jslib-explained.md)
 - [Comparison with UnityWebSocket](docs/comparison.md)
 - [Optimization details](docs/optimizations.md)
-- [UniTask support](docs/unitask.md)
 - [Zero-GC guide](docs/zero-gc-guide.md)
 - [Migration from UnityWebSocket](docs/migration.md)
 

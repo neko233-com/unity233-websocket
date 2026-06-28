@@ -70,6 +70,16 @@ namespace Unity233.WebSocket
             _ = SendBinaryAsync(scratch, payload.Length);
         }
 
+        public void Send(byte[] payload)
+        {
+            if (payload == null)
+            {
+                throw new ArgumentNullException(nameof(payload));
+            }
+
+            Send(payload.AsSpan());
+        }
+
         async Task SendBinaryAsync(byte[] scratch, int length)
         {
             try
