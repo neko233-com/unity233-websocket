@@ -129,6 +129,12 @@ namespace Unity233.WebSocket
             }
 
             _disposed = true;
+            _receiveRing?.ReleaseAllSlots();
+            if (ReadyState is Ws233State.Open or Ws233State.Connecting)
+            {
+                Close();
+            }
+
             Ws233WebGLBridge.WebSocket233Free(InstanceId);
             Ws233WebGLBridge.Untrack(InstanceId);
         }

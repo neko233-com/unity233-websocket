@@ -7,6 +7,7 @@
 | 文档 | 说明 |
 |------|------|
 | [为什么 WebGL 必须挂 JS？](webgl-jslib-explained.md) | jslib / `__Internal` 原理，能否去掉 JS |
+| [**UnityWebSocket 内存泄漏与 OOM 修复**](memory-leaks.md) | 微信小游戏 JS 涨内存根因与本库对策 |
 | [与 UnityWebSocket 对比](comparison.md) | 功能对照、设计取舍、适用场景 |
 | [优化原理详解](optimizations.md) | JSLIB / C# / 环形缓冲的具体改动 |
 | [UniTask 支持](unitask.md) | 可选 async API 与安装方式 |
@@ -33,17 +34,14 @@ https://github.com/neko233-com/unity233-websocket.git
 
 已实现：
 
-- WebGL JSLIB 桥接（Unity 2021.3+，含 Unity 6 `makeDynCall` 兼容）
-- 发送路径零拷贝（JS 侧 `Uint8Array` view，无 `buffer.slice()`）
-- **接收环形缓冲 `Ws233ReceiveRing`**（JS `HEAPU8.set` 直写 WASM，稳态无 `_malloc`）
-- 接收降级：`BufferPool` + 显式 `Release()`
-- **可选 UniTask 扩展**（`ConnectAsync` / `RunReceiveLoopAsync`）
+- WebGL + **WeixinMiniGame** JSLIB（`.jslib.meta` 双平台）
+- **Anti-leak JSLIB**：handler detach、`ws == null` 安全关闭、移除 FileReader/Blob、复用 deliver/string scratch
+- 发送 `Uint8Array` view 零拷贝；接收 **`Ws233ReceiveRing`** 稳态无 `_malloc`
+- C# **`BufferPool` + `Release()`**；可选 **UniTask** 扩展
 - Editor / Standalone `ClientWebSocket` 回退
-- Binary-first API（`ReadOnlySpan<byte>`）
 
 规划中：
 
-- SharedArrayBuffer / 批量 drain（进一步降 dynCall 频率）
-- 压缩扩展协商
-- 微信 / 团结小游戏 JSLIB 分支
-- 与 UnityWebSocket / NativeWebSocket 的可复现 Benchmark
+- [ ] SharedArrayBuffer / 批量 drain（进一步降 dynCall 频率）
+- [ ] WebSocket 压缩扩展协商（客户端侧关闭 perMessageDeflate 的可选 API）
+- [ ] 与 UnityWebSocket / NativeWebSocket 的可复现 Benchmark

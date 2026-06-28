@@ -21,12 +21,15 @@ Ultra-low-latency WebSocket client for Unity, optimized for **WebGL** with a **n
 
 **在线文档：** https://neko233-com.github.io/unity233-websocket/
 
-**WebGL 为何必须 jslib？** 不是「外挂 DLL」，而是浏览器沙箱硬约束 → [docs/webgl-jslib-explained.md](docs/webgl-jslib-explained.md)
+**WebGL 为何必须 jslib？** → [docs/webgl-jslib-explained.md](docs/webgl-jslib-explained.md)
+
+**UnityWebSocket JS 内存泄漏 / 微信 OOM？** → [docs/memory-leaks.md](docs/memory-leaks.md)
 
 **详细文档：**
 
 - [📚 文档首页](docs/index.md)
 - [为什么 WebGL 必须挂 JS？](docs/webgl-jslib-explained.md)
+- [**UnityWebSocket 内存泄漏与 OOM 修复**](docs/memory-leaks.md)
 - [与 UnityWebSocket 对比](docs/comparison.md)
 - [优化原理详解](docs/optimizations.md)
 - [UniTask 支持](docs/unitask.md)
@@ -132,7 +135,13 @@ await socket.RunReceiveLoopAsync(async frame => {
 }, ct);
 ```
 
-见 [docs/unitask.md](docs/unitask.md)
+### 微信小游戏
+
+```csharp
+var socket = Ws233Socket.Create(url, Ws233Options.WeChatMinigameDefaults);
+```
+
+务必 `frame.Release()` + 连接 `Dispose()`，见 [docs/memory-leaks.md](docs/memory-leaks.md)。
 
 ---
 

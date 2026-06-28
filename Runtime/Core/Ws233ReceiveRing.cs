@@ -51,5 +51,13 @@ namespace Unity233.WebSocket
         {
             _backing[_flagsOffset + slotIndex] = 0;
         }
+
+        public void ReleaseAllSlots()
+        {
+            for (var i = 0; i < _slotCount; i++)
+            {
+                _backing[_flagsOffset + i] = 0;
+            }
+        }
     }
 }
