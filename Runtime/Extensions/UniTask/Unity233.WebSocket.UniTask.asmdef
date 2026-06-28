@@ -1,0 +1,23 @@
+{
+    "name": "Unity233.WebSocket.UniTask",
+    "rootNamespace": "Unity233.WebSocket",
+    "references": [
+        "Unity233.WebSocket",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.cysharp.unitask",
+            "expression": "2.0.0",
+            "define": "UNITASK_SUPPORT"
+        }
+    ],
+    "noEngineReferences": false
+}

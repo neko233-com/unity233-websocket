@@ -1,0 +1,9 @@
+title: unity233-websocket
+description: Ultra-low-latency WebGL WebSocket for Unity
+theme: jekyll-theme-minimal
+markdown: kramdown
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: true

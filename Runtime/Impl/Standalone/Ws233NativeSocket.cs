@@ -16,16 +16,12 @@ namespace Unity233.WebSocket
         bool _disposed;
         Task _pump;
 
-        public Ws233NativeSocket(string address, Ws233BufferPool bufferPool = null)
-            : this(address, null, bufferPool)
+        public Ws233NativeSocket(string address, string[] subProtocols, Ws233Options options)
         {
-        }
-
-        public Ws233NativeSocket(string address, string[] subProtocols, Ws233BufferPool bufferPool = null)
-        {
+            options ??= new Ws233Options();
             Address = address;
             _subProtocols = subProtocols;
-            BufferPool = bufferPool ?? new Ws233BufferPool();
+            BufferPool = options.BufferPool ?? new Ws233BufferPool();
         }
 
         public string Address { get; }

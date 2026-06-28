@@ -6,19 +6,18 @@ namespace Unity233.WebSocket
     internal sealed class Ws233WebGLSocket : IWs233Socket
     {
         readonly string[] _subProtocols;
+        readonly Ws233ReceiveRing _receiveRing;
         bool _disposed;
 
-        public Ws233WebGLSocket(string address, Ws233BufferPool bufferPool = null)
-            : this(address, null, bufferPool)
+        public Ws233WebGLSocket(string address, string[] subProtocols, Ws233Options options)
         {
-        }
-
-        public Ws233WebGLSocket(string address, string[] subProtocols, Ws233BufferPool bufferPool = null)
-        {
+            options ??= new Ws233Options();
             Address = address;
             _subProtocols = subProtocols;
-            BufferPool = bufferPool ?? new Ws233BufferPool();
+            BufferPool = options.BufferPool ?? new Ws233BufferPool();
+            _receiveRing = new Ws233ReceiveRing(options.ReceiveRingSlotCount, options.ReceiveRingSlotSize);
             InstanceId = Ws233WebGLBridge.Allocate(address);
+            Ws233WebGLBridge.BindReceiveRing(InstanceId, _receiveRing);
 
             if (_subProtocols == null)
             {
@@ -46,6 +45,8 @@ namespace Unity233.WebSocket
         public int InstanceId { get; }
 
         public Ws233BufferPool BufferPool { get; }
+
+        internal Ws233ReceiveRing ReceiveRing => _receiveRing;
 
         public Ws233State ReadyState => (Ws233State)Ws233WebGLBridge.WebSocket233GetState(InstanceId);
 
@@ -102,7 +103,12 @@ namespace Unity233.WebSocket
 
         internal void HandleOpen() => Opened?.Invoke();
 
-        internal void HandleBinary(byte[] rented, int count)
+        internal void HandleBinaryFromRing(int slotIndex, int count)
+        {
+            BinaryReceived?.Invoke(new WsBinaryMessage(_receiveRing, slotIndex, count));
+        }
+
+        internal void HandleBinaryPooled(byte[] rented, int count)
         {
             BinaryReceived?.Invoke(new WsBinaryMessage(rented, 0, count, BufferPool));
         }
@@ -144,6 +150,7 @@ namespace Unity233.WebSocket
                 -6 => "WebSocket is not open.",
                 -7 => "Invalid close code or reason.",
                 -8 => "Send buffer is unsupported on this runtime.",
+                -9 => "Receive ring is full; release frames or increase slot count.",
                 _ => $"Unknown WebSocket error {code}.",
             };
         }

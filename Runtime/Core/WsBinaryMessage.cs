@@ -3,14 +3,16 @@ using System;
 namespace Unity233.WebSocket
 {
     /// <summary>
-    /// Zero-copy friendly binary frame. Call <see cref="Release"/> when parsing is done.
+    /// Binary frame from pool or WebGL receive ring. Always call <see cref="Release"/> when done.
     /// </summary>
     public readonly struct WsBinaryMessage
     {
         readonly Ws233BufferPool _pool;
+        readonly Ws233ReceiveRing _ring;
         readonly byte[] _buffer;
         readonly int _offset;
         readonly int _count;
+        readonly int _slotIndex;
 
         public WsBinaryMessage(byte[] buffer, int offset, int count, Ws233BufferPool pool)
         {
@@ -18,9 +20,23 @@ namespace Unity233.WebSocket
             _offset = offset;
             _count = count;
             _pool = pool;
+            _ring = null;
+            _slotIndex = -1;
+        }
+
+        internal WsBinaryMessage(Ws233ReceiveRing ring, int slotIndex, int count)
+        {
+            _ring = ring;
+            _slotIndex = slotIndex;
+            _buffer = ring.Backing;
+            _offset = ring.GetSlotOffset(slotIndex);
+            _count = count;
+            _pool = null;
         }
 
         public int Count => _count;
+
+        public bool IsFromRing => _ring != null;
 
         public ReadOnlySpan<byte> Span => new(_buffer, _offset, _count);
 
@@ -28,7 +44,14 @@ namespace Unity233.WebSocket
 
         public void Release()
         {
-            _pool?.Return(_buffer);
+            if (_pool != null)
+            {
+                _pool.Return(_buffer);
+            }
+            else if (_ring != null)
+            {
+                _ring.ReleaseSlot(_slotIndex);
+            }
         }
     }
 }

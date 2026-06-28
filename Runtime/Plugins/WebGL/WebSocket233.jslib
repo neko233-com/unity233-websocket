@@ -6,9 +6,73 @@ var WebSocket233Library =
         lastId: 0,
         onOpen: null,
         onMessage: null,
+        onMessageRing: null,
         onError: null,
         onClose: null,
-        support6000: false
+        support6000: false,
+
+        tryDeliverRing: function(instanceId, array)
+        {
+            var instance = ws233Manager.instances[instanceId];
+            if (!instance || !instance.ring || !ws233Manager.onMessageRing)
+            {
+                return false;
+            }
+
+            var ring = instance.ring;
+            if (array.length > ring.slotSize)
+            {
+                return false;
+            }
+
+            for (var attempt = 0; attempt < ring.slotCount; attempt++)
+            {
+                var slot = (instance.ringCursor + attempt) % ring.slotCount;
+                var flagIndex = ring.flagsOffset + slot;
+                if (HEAPU8[flagIndex] !== 0)
+                {
+                    continue;
+                }
+
+                HEAPU8[flagIndex] = 1;
+                HEAPU8.set(array, ring.base + slot * ring.slotSize);
+                instance.ringCursor = (slot + 1) % ring.slotCount;
+
+                if (ws233Manager.support6000)
+                {
+                    {{{ makeDynCall('viii', 'ws233Manager.onMessageRing') }}}(instanceId, slot, array.length);
+                }
+                else
+                {
+                    Module.dynCall_viii(ws233Manager.onMessageRing, instanceId, slot, array.length);
+                }
+
+                return true;
+            }
+
+            return false;
+        },
+
+        deliverPooled: function(instanceId, array)
+        {
+            var buffer = _malloc(array.length);
+            writeArrayToMemory(array, buffer);
+            try
+            {
+                if (ws233Manager.support6000)
+                {
+                    {{{ makeDynCall('viii', 'ws233Manager.onMessage') }}}(instanceId, buffer, array.length);
+                }
+                else
+                {
+                    Module.dynCall_viii(ws233Manager.onMessage, instanceId, buffer, array.length);
+                }
+            }
+            finally
+            {
+                _free(buffer);
+            }
+        }
     },
 
     WebSocket233SetSupport6000: function()
@@ -24,6 +88,11 @@ var WebSocket233Library =
     WebSocket233SetOnMessage: function(callback)
     {
         ws233Manager.onMessage = callback;
+    },
+
+    WebSocket233SetOnMessageRing: function(callback)
+    {
+        ws233Manager.onMessageRing = callback;
     },
 
     WebSocket233SetOnError: function(callback)
@@ -43,9 +112,27 @@ var WebSocket233Library =
         ws233Manager.instances[id] = {
             url: url,
             ws: null,
-            subProtocols: null
+            subProtocols: null,
+            ring: null,
+            ringCursor: 0
         };
         return id;
+    },
+
+    WebSocket233BindReceiveRing: function(instanceId, bufferPtr, slotSize, slotCount, flagsOffset)
+    {
+        var instance = ws233Manager.instances[instanceId];
+        if (!instance) return -1;
+        if (slotSize < 1 || slotCount < 1) return -2;
+
+        instance.ring = {
+            base: bufferPtr,
+            slotSize: slotSize,
+            slotCount: slotCount,
+            flagsOffset: flagsOffset
+        };
+        instance.ringCursor = 0;
+        return 0;
     },
 
     WebSocket233AddSubProtocol: function(instanceId, protocolPtr)
@@ -111,22 +198,9 @@ var WebSocket233Library =
             if (ev.data instanceof ArrayBuffer)
             {
                 var array = new Uint8Array(ev.data);
-                var buffer = _malloc(array.length);
-                writeArrayToMemory(array, buffer);
-                try
+                if (!ws233Manager.tryDeliverRing(instanceId, array))
                 {
-                    if (ws233Manager.support6000)
-                    {
-                        {{{ makeDynCall('viii', 'ws233Manager.onMessage') }}}(instanceId, buffer, array.length);
-                    }
-                    else
-                    {
-                        Module.dynCall_viii(ws233Manager.onMessage, instanceId, buffer, array.length);
-                    }
-                }
-                finally
-                {
-                    _free(buffer);
+                    ws233Manager.deliverPooled(instanceId, array);
                 }
             }
             else if (typeof Blob !== "undefined" && ev.data instanceof Blob)
@@ -135,24 +209,11 @@ var WebSocket233Library =
                 reader.onload = function()
                 {
                     var array = new Uint8Array(reader.result);
-                    var buffer = _malloc(array.length);
-                    writeArrayToMemory(array, buffer);
-                    try
+                    if (!ws233Manager.tryDeliverRing(instanceId, array))
                     {
-                        if (ws233Manager.support6000)
-                        {
-                            {{{ makeDynCall('viii', 'ws233Manager.onMessage') }}}(instanceId, buffer, array.length);
-                        }
-                        else
-                        {
-                            Module.dynCall_viii(ws233Manager.onMessage, instanceId, buffer, array.length);
-                        }
+                        ws233Manager.deliverPooled(instanceId, array);
                     }
-                    finally
-                    {
-                        reader = null;
-                        _free(buffer);
-                    }
+                    reader = null;
                 };
                 reader.readAsArrayBuffer(ev.data);
             }
@@ -229,7 +290,6 @@ var WebSocket233Library =
         return 0;
     },
 
-    // Zero-copy send: Uint8Array view over WASM heap instead of buffer.slice().
     WebSocket233Send: function(instanceId, bufferPtr, length)
     {
         var instance = ws233Manager.instances[instanceId];

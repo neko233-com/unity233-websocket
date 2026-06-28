@@ -1,6 +1,6 @@
 {
   "name": "com.neko233.unity233-websocket",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Unity233 WebSocket",
   "description": "Ultra-low-latency, near-zero-GC WebSocket client for Unity WebGL and native platforms.",
   "unity": "2021.3",

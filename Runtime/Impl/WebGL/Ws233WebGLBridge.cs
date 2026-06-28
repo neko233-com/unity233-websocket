@@ -13,6 +13,7 @@ namespace Unity233.WebSocket
 
         public delegate void OnOpenCallback(int instanceId);
         public delegate void OnMessageCallback(int instanceId, IntPtr msgPtr, int msgSize);
+        public delegate void OnMessageRingCallback(int instanceId, int slotIndex, int msgSize);
         public delegate void OnErrorCallback(int instanceId, IntPtr errorPtr);
         public delegate void OnCloseCallback(int instanceId, int closeCode, IntPtr reasonPtr);
 
@@ -24,8 +25,10 @@ namespace Unity233.WebSocket
         [DllImport("__Internal")] public static extern int WebSocket233Allocate(string url);
         [DllImport("__Internal")] public static extern int WebSocket233AddSubProtocol(int instanceId, string protocol);
         [DllImport("__Internal")] public static extern void WebSocket233Free(int instanceId);
+        [DllImport("__Internal")] public static extern int WebSocket233BindReceiveRing(int instanceId, byte[] backing, int slotSize, int slotCount, int flagsOffset);
         [DllImport("__Internal")] public static extern void WebSocket233SetOnOpen(OnOpenCallback callback);
         [DllImport("__Internal")] public static extern void WebSocket233SetOnMessage(OnMessageCallback callback);
+        [DllImport("__Internal")] public static extern void WebSocket233SetOnMessageRing(OnMessageRingCallback callback);
         [DllImport("__Internal")] public static extern void WebSocket233SetOnError(OnErrorCallback callback);
         [DllImport("__Internal")] public static extern void WebSocket233SetOnClose(OnCloseCallback callback);
         [DllImport("__Internal")] public static extern void WebSocket233SetSupport6000();
@@ -38,7 +41,8 @@ namespace Unity233.WebSocket
             }
 
             WebSocket233SetOnOpen(DelegateOnOpen);
-            WebSocket233SetOnMessage(DelegateOnMessage);
+            WebSocket233SetOnMessage(DelegateOnMessagePooled);
+            WebSocket233SetOnMessageRing(DelegateOnMessageRing);
             WebSocket233SetOnError(DelegateOnError);
             WebSocket233SetOnClose(DelegateOnClose);
 #if UNITY_6000_0_OR_NEWER
@@ -51,6 +55,22 @@ namespace Unity233.WebSocket
         {
             EnsureInitialized();
             return WebSocket233Allocate(address);
+        }
+
+        public static void BindReceiveRing(int instanceId, Ws233ReceiveRing ring)
+        {
+            EnsureInitialized();
+            var code = WebSocket233BindReceiveRing(
+                instanceId,
+                ring.Backing,
+                ring.SlotSize,
+                ring.SlotCount,
+                ring.FlagsOffset);
+
+            if (code < 0)
+            {
+                throw new InvalidOperationException($"Failed to bind receive ring: {code}");
+            }
         }
 
         public static void Track(Ws233WebGLSocket socket)
@@ -75,8 +95,17 @@ namespace Unity233.WebSocket
             }
         }
 
+        [MonoPInvokeCallback(typeof(OnMessageRingCallback))]
+        static void DelegateOnMessageRing(int instanceId, int slotIndex, int msgSize)
+        {
+            if (Sockets.TryGetValue(instanceId, out var socket))
+            {
+                socket.HandleBinaryFromRing(slotIndex, msgSize);
+            }
+        }
+
         [MonoPInvokeCallback(typeof(OnMessageCallback))]
-        static void DelegateOnMessage(int instanceId, IntPtr msgPtr, int msgSize)
+        static void DelegateOnMessagePooled(int instanceId, IntPtr msgPtr, int msgSize)
         {
             if (!Sockets.TryGetValue(instanceId, out var socket))
             {
@@ -85,7 +114,7 @@ namespace Unity233.WebSocket
 
             var rented = socket.BufferPool.Rent(msgSize);
             Marshal.Copy(msgPtr, rented, 0, msgSize);
-            socket.HandleBinary(rented, msgSize);
+            socket.HandleBinaryPooled(rented, msgSize);
         }
 
         [MonoPInvokeCallback(typeof(OnErrorCallback))]
