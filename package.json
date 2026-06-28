@@ -1,0 +1,27 @@
+{
+  "name": "com.neko233.unity233-websocket",
+  "version": "0.1.0",
+  "displayName": "Unity233 WebSocket",
+  "description": "Ultra-low-latency, near-zero-GC WebSocket client for Unity WebGL and native platforms.",
+  "unity": "2021.3",
+  "license": "MIT",
+  "author": {
+    "name": "neko233-com",
+    "url": "https://github.com/neko233-com"
+  },
+  "keywords": [
+    "websocket",
+    "webgl",
+    "zero-gc",
+    "low-latency",
+    "unity",
+    "network"
+  ],
+  "samples": [
+    {
+      "displayName": "WebSocket Demo",
+      "description": "Minimal connect / send / receive example.",
+      "path": "Samples~/Demo"
+    }
+  ]
+}

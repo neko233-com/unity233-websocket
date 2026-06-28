@@ -1,0 +1,14 @@
+{
+    "name": "Unity233.WebSocket",
+    "rootNamespace": "Unity233.WebSocket",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

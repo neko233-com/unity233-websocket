@@ -1,0 +1,12 @@
+bin/
+obj/
+Library/
+Temp/
+Logs/
+UserSettings/
+.vs/
+.idea/
+*.csproj.user
+*.sln.DotSettings.user
+*.unitypackage
+*.nupkg
